@@ -6,6 +6,18 @@
     :license: MIT, see LICENSE for more details.
 """
 import os
+import requests
+from dotenv import load_dotenv
+load_dotenv("albumyenv")  # Load .env file
+
+API_KEY = os.getenv("AZURE_API_KEY")
+ENDPOINT = os.getenv("AZURE_ENDPOINT")
+
+print("API_KEY:", os.getenv("AZURE_API_KEY"))
+print("ENDPOINT:", os.getenv("AZURE_ENDPOINT"))
+
+
+
 
 from flask import render_template, flash, redirect, url_for, current_app, \
     send_from_directory, request, abort, Blueprint
@@ -20,6 +32,25 @@ from albumy.notifications import push_comment_notification, push_collect_notific
 from albumy.utils import rename_image, resize_image, redirect_back, flash_errors
 
 main_bp = Blueprint('main', __name__)
+
+
+
+def generate_alt_text(image_path):
+    headers = {'Ocp-Apim-Subscription-Key': API_KEY}
+    params = {'visualFeatures': 'Description'}
+    files = {'file': open(image_path, 'rb')}
+
+    response = requests.post(ENDPOINT, headers=headers, params=params, files=files)
+    data = response.json()
+
+    print("Azure API Response:", data)  # <-- ADD THIS LINE
+
+    if 'description' in data and 'captions' in data['description']:
+        return data['description']['captions'][0]['text']
+    else:
+        return "No description"
+
+
 
 
 @main_bp.route('/')
@@ -122,13 +153,16 @@ def upload():
     if request.method == 'POST' and 'file' in request.files:
         f = request.files.get('file')
         filename = rename_image(f.filename)
-        f.save(os.path.join(current_app.config['ALBUMY_UPLOAD_PATH'], filename))
+        file_path = os.path.join(current_app.config['ALBUMY_UPLOAD_PATH'], filename)
+        f.save(file_path)
         filename_s = resize_image(f, filename, current_app.config['ALBUMY_PHOTO_SIZE']['small'])
         filename_m = resize_image(f, filename, current_app.config['ALBUMY_PHOTO_SIZE']['medium'])
+        alt_text = generate_alt_text(file_path)
         photo = Photo(
             filename=filename,
             filename_s=filename_s,
             filename_m=filename_m,
+            generated_alt_text=alt_text,
             author=current_user._get_current_object()
         )
         db.session.add(photo)

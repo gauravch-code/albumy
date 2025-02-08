@@ -24,7 +24,11 @@
                 <h5>{{ results|length }} results</h5>
                 {% for item in results %}
                     {% if category == 'photo' %}
-                        {{ photo_card(item) }}
+                        <div class="photo-card">
+                        <img src="{{ url_for('main.get_image', filename=item.filename) }}" alt="{{ item.generated_alt_text }}">
+                        <p><strong>Detected Objects:</strong> {{ item.detected_objects }}</p>
+                        </div>
+            
                     {% elif category == 'user' %}
                         {{ user_card(item) }}
                     {% else %}

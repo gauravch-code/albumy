@@ -11,6 +11,8 @@ import click
 from flask import Flask, render_template
 from flask_login import current_user
 from flask_wtf.csrf import CSRFError
+from flask_migrate import Migrate
+
 
 from albumy.blueprints.admin import admin_bp
 from albumy.blueprints.ajax import ajax_bp
@@ -20,6 +22,9 @@ from albumy.blueprints.user import user_bp
 from albumy.extensions import bootstrap, db, login_manager, mail, dropzone, moment, whooshee, avatars, csrf
 from albumy.models import Role, User, Photo, Tag, Follow, Notification, Comment, Collect, Permission
 from albumy.settings import config
+
+migrate = Migrate()  # <-- Add this line
+
 
 
 def create_app(config_name=None):
@@ -43,6 +48,7 @@ def create_app(config_name=None):
 def register_extensions(app):
     bootstrap.init_app(app)
     db.init_app(app)
+    migrate.init_app(app, db)
     login_manager.init_app(app)
     mail.init_app(app)
     dropzone.init_app(app)
