@@ -22,22 +22,32 @@
         <div class="col-md-9">
             {% if results %}
                 <h5>{{ results|length }} results</h5>
-                {% for item in results %}
-                    {% if category == 'photo' %}
-                        <div class="photo-card">
-                        <img src="{{ url_for('main.get_image', filename=item.filename) }}" alt="{{ item.generated_alt_text }}">
-                        <p><strong>Detected Objects:</strong> {{ item.detected_objects }}</p>
-                        </div>
-            
-                    {% elif category == 'user' %}
+                {% if category == 'photo' %}
+                    <div class="row">
+                        {% for item in results %}
+                            <div class="col-md-3 col-sm-4 col-6 mb-4">
+                                <div class="card h-100">
+                                    <img src="{{ url_for('main.get_image', filename=item.filename_m) }}"
+                                         alt="{{ item.generated_alt_text }}"
+                                         class="card-img-top img-fluid">
+                                    <div class="card-body p-2">
+                                        <p class="card-text small"><strong>Detected Objects:</strong> {{ item.detected_objects }}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% elif category == 'user' %}
+                    {% for item in results %}
                         {{ user_card(item) }}
-                    {% else %}
+                    {% endfor %}
+                {% else %}
+                    {% for item in results %}
                         <a class="badge badge-light" href="{{ url_for('.show_tag', tag_id=item.id) }}">
-                            {{ item.name }} {{ item.photos|length }}
+                            {{ item.name }} ({{ item.photos|length }})
                         </a>
-                    {% endif %}
-                {% endfor %}
-
+                    {% endfor %}
+                {% endif %}
             {% else %}
                 <h5 class="tip">No results.</h5>
             {% endif %}
