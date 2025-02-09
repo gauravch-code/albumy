@@ -1,6 +1,4 @@
 
-
-`''
 # Albumy
 
 *Capture and share every wonderful moment – now with ML-powered image accessibility and search!*
