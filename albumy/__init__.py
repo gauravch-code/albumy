@@ -8,10 +8,12 @@
 import os
 
 import click
-from flask import Flask, render_template
+from flask import Flask, app, render_template
 from flask_login import current_user
 from flask_wtf.csrf import CSRFError
 from flask_migrate import Migrate
+from flask.cli import with_appcontext
+from albumy.fakes import fake_admin, fake_comment, fake_follow, fake_photo, fake_tag, fake_user, fake_collect
 
 
 from albumy.blueprints.admin import admin_bp
@@ -23,9 +25,7 @@ from albumy.extensions import bootstrap, db, login_manager, mail, dropzone, mome
 from albumy.models import Role, User, Photo, Tag, Follow, Notification, Comment, Collect, Permission
 from albumy.settings import config
 
-migrate = Migrate()  # <-- Add this line
-
-
+migrate=Migrate()
 
 def create_app(config_name=None):
     if config_name is None:
@@ -43,6 +43,7 @@ def create_app(config_name=None):
     register_template_context(app)
 
     return app
+
 
 
 def register_extensions(app):
@@ -143,7 +144,6 @@ def register_commands(app):
     def forge(user, follow, photo, tag, collect, comment):
         """Generate fake data."""
 
-        from albumy.fakes import fake_admin, fake_comment, fake_follow, fake_photo, fake_tag, fake_user, fake_collect
 
         db.drop_all()
         db.create_all()
@@ -165,3 +165,11 @@ def register_commands(app):
         click.echo('Generating %d comments...' % comment)
         fake_comment(comment)
         click.echo('Done.')
+    
+
+    @app.cli.command("rebuild-index")
+    @with_appcontext
+    def rebuild_index():
+        """Rebuild the Whooshee search index."""
+        whooshee.reindex()
+        click.echo("Whooshee index rebuilt successfully!")

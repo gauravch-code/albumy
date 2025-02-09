@@ -37,19 +37,19 @@ main_bp = Blueprint('main', __name__)
 
 def generate_alt_text(image_path):
     headers = {'Ocp-Apim-Subscription-Key': API_KEY}
-    params = {'visualFeatures': 'Description'}
-    files = {'file': open(image_path, 'rb')}
+    params = {'visualFeatures': 'Tags,Description'}
+    
+    with open(image_path, 'rb') as image_file:
+        files = {'file': image_file}
+        response = requests.post(ENDPOINT, headers=headers, params=params, files=files)
+        data = response.json()
 
-    response = requests.post(ENDPOINT, headers=headers, params=params, files=files)
-    data = response.json()
+    if 'tags' in data and 'description' in data:
+        detected_objects = ", ".join([tag['name'] for tag in data.get('tags', [])])
+        alt_text = data['description']['captions'][0]['text'] if 'captions' in data['description'] else "No description"
+        return {"alt_text": alt_text, "detected_objects": detected_objects}
 
-    print("Azure API Response:", data)  # <-- ADD THIS LINE
-
-    if 'description' in data and 'captions' in data['description']:
-        return data['description']['captions'][0]['text']
-    else:
-        return "No description"
-
+    return {"alt_text": "No description", "detected_objects": ""}
 
 
 
@@ -155,14 +155,24 @@ def upload():
         filename = rename_image(f.filename)
         file_path = os.path.join(current_app.config['ALBUMY_UPLOAD_PATH'], filename)
         f.save(file_path)
+        
+        # Resize images (small and medium versions)
         filename_s = resize_image(f, filename, current_app.config['ALBUMY_PHOTO_SIZE']['small'])
         filename_m = resize_image(f, filename, current_app.config['ALBUMY_PHOTO_SIZE']['medium'])
-        alt_text = generate_alt_text(file_path)
+        
+        # Generate both alt text and object detection results using Azure Computer Vision.
+        # Your generate_alt_text function returns a dict with keys "alt_text" and "detected_objects"
+        result = generate_alt_text(file_path)
+        alt_text = result.get("alt_text", "No description")
+        detected_objects = result.get("detected_objects", "")
+        
+        # Create a new Photo entry. (Make sure your Photo model has a field, for example, "detected_objects".)
         photo = Photo(
             filename=filename,
             filename_s=filename_s,
             filename_m=filename_m,
             generated_alt_text=alt_text,
+            detected_objects=detected_objects,  # new field storing the object detection result
             author=current_user._get_current_object()
         )
         db.session.add(photo)

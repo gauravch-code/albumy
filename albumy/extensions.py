@@ -26,6 +26,8 @@ avatars = Avatars()
 csrf = CSRFProtect()
 
 
+
+
 @login_manager.user_loader
 def load_user(user_id):
     from albumy.models import User
